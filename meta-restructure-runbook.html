@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RVWX — Meta Account Restructure Runbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e1b2a;--panel:#13243a;--panel-2:#172b44;--line:#22405f;
+    --ink:#eef3f8;--muted:#8aa4bd;--yellow:#f4c430;--orange:#e8703a;
+    --green:#3fb27f;--red:#e0564e;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;
+    line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:32px 20px 80px}
+
+  header{border-bottom:2px solid var(--line);padding-bottom:22px;margin-bottom:14px}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--yellow);margin:0 0 8px}
+  h1{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(30px,6vw,46px);
+    line-height:.98;letter-spacing:.01em;margin:0;text-transform:uppercase}
+  h1 span{color:var(--orange)}
+  .sub{color:var(--muted);font-size:14px;margin:10px 0 0;max-width:64ch}
+
+  .progress-bar{position:sticky;top:0;z-index:20;background:rgba(14,27,42,.94);
+    backdrop-filter:blur(6px);border-bottom:1px solid var(--line);
+    margin:0 -20px 22px;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .track{flex:1;min-width:160px;height:9px;background:var(--panel-2);border-radius:99px;
+    overflow:hidden;border:1px solid var(--line)}
+  .fill{height:100%;width:0;background:linear-gradient(90deg,var(--yellow),var(--orange));
+    transition:width .35s ease;border-radius:99px}
+  .count{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink);white-space:nowrap}
+  .count b{color:var(--yellow)}
+  .btn{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.05em;
+    font-weight:600;font-size:13px;background:transparent;color:var(--muted);
+    border:1px solid var(--line);border-radius:7px;padding:7px 13px;cursor:pointer;transition:.15s}
+  .btn:hover{color:var(--ink);border-color:var(--orange)}
+
+  .callout{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:13px 16px;margin-bottom:16px;font-size:12.5px;color:var(--muted)}
+  .callout b{color:var(--ink)}
+  .callout.warn{border-left:3px solid var(--orange)}
+
+  .anchors{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--green);
+    border-radius:10px;padding:16px 18px;margin-bottom:28px}
+  .anchors h2{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.06em;
+    font-size:15px;margin:0 0 10px;color:var(--green)}
+  .anchors ul{margin:0;padding-left:18px}
+  .anchors li{font-size:13.5px;color:var(--muted);margin:4px 0}
+  .anchors b{color:var(--ink);font-weight:600}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--yellow)}
+
+  .phase{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    margin-bottom:18px;overflow:hidden}
+  .phase-head{display:flex;align-items:baseline;gap:14px;padding:18px 20px 4px}
+  .phase-num{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:30px;
+    color:var(--line);line-height:.8;min-width:38px}
+  .phase-title{font-family:'Barlow Condensed',sans-serif;font-weight:600;text-transform:uppercase;
+    letter-spacing:.04em;font-size:19px;margin:0;color:var(--ink)}
+  .phase-note{color:var(--muted);font-size:13px;padding:2px 20px 12px 72px;margin:0}
+
+  ul.items{list-style:none;margin:0;padding:0 16px 14px}
+  li.item{display:flex;gap:13px;align-items:flex-start;padding:12px 8px;
+    border-top:1px solid rgba(34,64,95,.5)}
+  li.item:first-child{border-top:none}
+  .item input.chk{appearance:none;-webkit-appearance:none;flex:none;margin-top:1px;
+    width:20px;height:20px;border:1.7px solid var(--line);border-radius:5px;background:var(--panel-2);
+    cursor:pointer;position:relative;transition:.15s}
+  .item input.chk:hover{border-color:var(--orange)}
+  .item input.chk:checked{background:var(--green);border-color:var(--green)}
+  .item input.chk:checked::after{content:"";position:absolute;left:6px;top:2px;width:5px;height:10px;
+    border:solid #0e1b2a;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+  .item input.chk:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+  .item-body{flex:1;min-width:0}
+  .item-body label{font-size:14px;cursor:pointer;display:block}
+  .item.done .item-body label{color:var(--muted);text-decoration:line-through;
+    text-decoration-color:var(--line)}
+  .tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.04em;
+    text-transform:uppercase;padding:2px 7px;border-radius:5px;margin-left:6px;vertical-align:2px;border:1px solid}
+  .tag.gate{color:var(--red);border-color:var(--red);background:rgba(224,86,78,.08)}
+  .tag.resolved{color:var(--green);border-color:var(--green);background:rgba(63,178,127,.08)}
+  .tag.revised{color:var(--orange);border-color:var(--orange);background:rgba(232,112,58,.08)}
+
+  details.how{margin-top:7px}
+  details.how>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--yellow);padding:3px 0;user-select:none}
+  details.how>summary::-webkit-details-marker{display:none}
+  details.how>summary::before{content:"▸";font-size:11px;transition:transform .15s;color:var(--orange)}
+  details.how[open]>summary::before{transform:rotate(90deg)}
+  details.how .steps{margin:7px 0 2px;padding:13px 15px 13px 16px;background:var(--panel-2);
+    border:1px solid var(--line);border-radius:8px}
+  details.how ol{margin:0;padding-left:20px}
+  details.how ol li{font-size:12.5px;color:var(--muted);margin:6px 0;line-height:1.5}
+  details.how ol li::marker{color:var(--orange);font-family:'JetBrains Mono',monospace;font-size:11px}
+  details.how b{color:var(--ink);font-weight:600}
+  details.how .path{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--yellow)}
+  details.how .warn{color:var(--red);font-weight:500}
+  details.how a{color:var(--yellow);word-break:break-all}
+
+  .resources{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--yellow);
+    border-radius:10px;padding:16px 18px;margin:28px 0 6px}
+  .resources h2{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.06em;
+    font-size:15px;margin:0 0 4px;color:var(--yellow)}
+  .resources .lead{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+  .res-group{margin:0 0 14px}
+  .res-group h4{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.05em;
+    font-size:13px;color:var(--ink);margin:0 0 7px;padding-bottom:5px;border-bottom:1px solid rgba(34,64,95,.6)}
+  .res-group ul{list-style:none;margin:0;padding:0}
+  .res-group li{font-size:13px;padding:5px 0;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+  .res-group li .what{color:var(--muted);min-width:188px;flex:none}
+  .res-group li .what b{color:var(--ink);font-weight:600}
+  .res-group a{color:var(--yellow);text-decoration:none;word-break:break-all;border-bottom:1px solid transparent}
+  .res-group a:hover{border-bottom-color:var(--yellow)}
+  .res-group .path{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--orange);word-break:break-all}
+  .res-note{font-size:11.5px;color:var(--muted);font-style:italic;width:100%;margin-top:1px}
+
+  footer{margin-top:34px;color:var(--muted);font-size:12px;text-align:center;
+    font-family:'JetBrains Mono',monospace;letter-spacing:.03em}
+
+  @media (max-width:560px){
+    .phase-note{padding-left:20px}
+    .phase-num{font-size:24px;min-width:30px}
+    .res-group li .what{min-width:100%}
+  }
+  @media print{
+    .progress-bar,.btn{display:none}
+    body{background:#fff;color:#000}
+    .phase,.anchors,.resources,.callout{border-color:#bbb;break-inside:avoid}
+    details.how{display:block}
+    details.how .steps{display:block!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">RV Weather · Account 2797396350332381 · Pixel 803435358316400</p>
+    <h1>Meta Restructure <span>Runbook</span></h1>
+    <p class="sub">Post-test consolidation onto the Go page. Built from the 27 May–25 Jun exports
+      (reconciled MATCH at all three levels). Tick each step as it ships; expand <span class="mono">Steps</span>
+      for the click-path. Progress saves in this browser.</p>
+  </header>
+
+  <div class="progress-bar">
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <span class="count"><b id="done">0</b> / <span id="total">0</span> done · <span id="pct">0%</span></span>
+    <button class="btn" id="expandBtn">Expand all</button>
+    <button class="btn" id="printBtn">Print</button>
+    <button class="btn" id="resetBtn">Reset</button>
+  </div>
+
+  <div class="callout warn">
+    <b>Before you start:</b> Meta relabels menus often. Paths below are current as written; if a label's
+    moved, the destination tool name (Experiments, Events Manager, Audiences, Custom conversions) is the
+    constant — search it in the <b>All tools</b> (≡) menu. Account picker top-left must read
+    <span class="mono">2797396350332381</span> on every step.
+  </div>
+
+  <section class="anchors">
+    <h2>Data anchors (verified, don't re-derive)</h2>
+    <ul>
+      <li>Test is a dead heat: <b>Legacy 7 purch / $136.52 CPP</b> vs <b>Go 7 purch / $136.79 CPP</b>. Go edges LPV→purchase <span class="mono">1.20% vs 1.06%</span>; Legacy pulled more leads (14 vs 8) and won the last 7d. Call = Go, on quality not performance.</li>
+      <li>Throttle real but mild: cells run <span class="mono">~$58/day vs $70 cap (~83%)</span>. Purchase opt never exits learning (need ~50/wk, getting 2–4).</li>
+      <li>Test opt event <span class="mono">= custom.823301579710403 (SureRoute Annual purchase)</span>. KatherineSaved drove <b>5 of Go's 7 purchases</b> at $141 CPP; Statics02 efficient at $54–59 but starved.</li>
+      <li>Active campaign: <b>RVWX_LP-TEST_Sales_2026-06 ABO</b>. Everything else paused.</li>
+    </ul>
+  </section>
+
+  <!-- PHASE 0 -->
+  <div class="phase">
+    <div class="phase-head"><div class="phase-num">0</div><h3 class="phase-title">Pre-flight</h3></div>
+    <p class="phase-note">Lock the baseline and clear the corrupting variable before touching structure.</p>
+    <ul class="items">
+
+      <li class="item"><input type="checkbox" class="chk" id="c0_1"><div class="item-body">
+        <label for="c0_1">Pull raw CSVs, recompute, cross-check MATCH/MISMATCH <span class="tag resolved">done — $3,302.67 / 25 purch</span></label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Open <span class="path">adsmanager.facebook.com/adsmanager</span>; confirm the account picker (top-left) reads 2797396350332381.</li>
+          <li>Set the date range (top-right). Run it three times: once on the <b>Campaigns</b> tab, once on <b>Ad sets</b>, once on <b>Ads</b>.</li>
+          <li>Top-right of the table click the export tray icon (down-arrow) → <b>Export table data</b> → format <b>.csv</b> → <b>Export</b>.</li>
+          <li>In pandas: Cost per purchase = Amount spent ÷ Purchases; LPV→purchase = Purchases ÷ Landing page views. Sum ad rows back to campaign and confirm equal. Already reconciled to $3,302.67 / 25 purch.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c0_2"><div class="item-body">
+        <label for="c0_2">Identify cells by name/URL (A-Legacy, B-Go), never by the A/B letter</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Ads Manager → open <b>RVWX_LP-TEST_Sales_2026-06 ABO</b>.</li>
+          <li>Read the ad-set names: <span class="path">A-Legacy</span> = legacy page, <span class="path">B-Go</span> = /go/ page. Act on these names.</li>
+          <li class="warn">In the Experiments panel the letters invert: Meta's "A" = your Go cell, Meta's "B" = legacy. When inside Experiments, match by destination URL, not the letter.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c0_3"><div class="item-body">
+        <label for="c0_3">Fix PayPal gateway or re-enable PayPal Standard before reading any post-restructure data <span class="tag gate">blocker</span></label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>This is MemberPress, not Meta. Go to <span class="path">rvweather.com/wp-admin</span> → <b>MemberPress → Settings → Payments</b>.</li>
+          <li>Check the PayPal (PPCP / "PayPal Complete Payments") gateway — this is where the captcha loop sits.</li>
+          <li>Re-enable <b>PayPal Standard</b> alongside cards / Apple Pay / Amazon Pay as a fallback (it doesn't fully sunset until Jan 2027).</li>
+          <li>Open a <b>P1 ticket</b> with MemberPress support referencing the captcha/session loop on the PPCP migration.</li>
+          <li class="warn">Do not read post-restructure CPP until the gateway is clean — silent failures suppress recorded purchases and corrupt the optimizer signal.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c0_4"><div class="item-body">
+        <label for="c0_4">Export the current Experiments result to preserve the page-test read</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Ads Manager → <b>All tools (≡, top-left)</b> → <b>Analyze and report → Experiments</b>.</li>
+          <li>Open the LP A/B test → click the download/export icon → save the results table.</li>
+          <li>Note: this snapshot is time-bound and won't reconcile to the CSV window — that's expected, keep them separate.</li>
+        </ol></div></details>
+      </div></li>
+    </ul>
+  </div>
+
+  <!-- PHASE 1 -->
+  <div class="phase">
+    <div class="phase-head"><div class="phase-num">1</div><h3 class="phase-title">Close the experiment</h3></div>
+    <p class="phase-note">End cleanly. Don't let it limp to 5 Jul spending half the budget into the legacy loser.</p>
+    <ul class="items">
+
+      <li class="item"><input type="checkbox" class="chk" id="c1_1"><div class="item-body">
+        <label for="c1_1">End the experiment; log the end date as the clean anchor</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>All tools (≡) → <b>Analyze and report → Experiments</b>.</li>
+          <li>Open the running A/B test → <b>End test</b> (top-right, or the ⋯ menu) → confirm.</li>
+          <li>Record the end date/time — that's your clean anchor for the next read.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c1_2"><div class="item-body">
+        <label for="c1_2">Build the new structure fresh — do not repurpose the experiment ad sets</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Do <b>not</b> duplicate the A-Legacy / B-Go ad sets — duplication carries their corrupted learning state.</li>
+          <li>The new campaign is built from scratch in Phase 2.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c1_3"><div class="item-body">
+        <label for="c1_3">Pause both experiment cells only after the new ad set is live</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Wait until the new consolidated ad set shows <b>Active · delivering</b>.</li>
+          <li>Then Ads Manager → test campaign → toggle <b>A-Legacy</b> and <b>B-Go</b> ad sets <b>Off</b>.</li>
+          <li>Order matters: new live first, old off second — no delivery gap.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c1_4"><div class="item-body">
+        <label for="c1_4">Retire the dead duplicate draft <span class="mono">RVWX_LP-TEST_Sales_2026-06</span> (non-ABO, $0)</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Campaigns tab → find <b>RVWX_LP-TEST_Sales_2026-06</b> (the non-ABO one, $0 spend).</li>
+          <li class="warn">Confirm it's the $0 non-ABO draft, NOT the live "…ABO" campaign, then select → ⋯ → <b>Delete</b> (or Archive).</li>
+        </ol></div></details>
+      </div></li>
+    </ul>
+  </div>
+
+  <!-- PHASE 2 -->
+  <div class="phase">
+    <div class="phase-head"><div class="phase-num">2</div><h3 class="phase-title">Consolidate to one Go set</h3></div>
+    <p class="phase-note">Collapse to a single prospecting ad set so the full budget feeds one optimizer.</p>
+    <ul class="items">
+
+      <li class="item"><input type="checkbox" class="chk" id="c2_1"><div class="item-body">
+        <label for="c2_1">One campaign, one Broad ad set, <span class="mono">/go/</span> destination, $140/day</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Ads Manager → <b>+ Create</b>.</li>
+          <li>Buying type <b>Auction</b> · Objective <b>Sales</b> → Continue.</li>
+          <li>Choose <b>Manual sales campaign</b> (not Advantage+ Shopping). Name it e.g. <span class="path">RVWX_Go_Scaling_2026-07</span>.</li>
+          <li>Campaign budget: leave <b>Off</b> (set budget at ad-set level for clean control) → Next.</li>
+          <li>Ad set → Conversion location <b>Website</b> · Pixel <b>RV Weather (803435358316400)</b>.</li>
+          <li>Daily budget <b>$140</b>. (Conversion event is set in Phase 4 — build it already on trial-start.)</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c2_2"><div class="item-body">
+        <label for="c2_2">Audience: Broad, US, 35+ (or open age); park the younger-demo test</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Same ad set → <b>Audience controls</b>: Location = <b>United States</b>.</li>
+          <li>Age <b>35–65+</b> · Gender <b>All</b>.</li>
+          <li>Detailed targeting: leave <b>blank</b> (Advantage+ audience / broad). Placements = Advantage+.</li>
+          <li class="warn">Don't add the rally younger-demo idea here — that's a second variable. Park it for a later clean test.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c2_3"><div class="item-body">
+        <label for="c2_3">Build fresh — do not reactivate Scaling's old Broad set</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Confirm you created a new campaign, not un-paused HM | Scaling's Broad.</li>
+          <li>New URL + new creative + new event = a full learning reset regardless — fresh avoids legacy baggage.</li>
+        </ol></div></details>
+      </div></li>
+    </ul>
+  </div>
+
+  <!-- PHASE 3 -->
+  <div class="phase">
+    <div class="phase-head"><div class="phase-num">3</div><h3 class="phase-title">Creative injection</h3></div>
+    <p class="phase-note">Page and offer fixed; creative is the only variable this cycle.</p>
+    <ul class="items">
+
+      <li class="item"><input type="checkbox" class="chk" id="c3_1"><div class="item-body">
+        <label for="c3_1">Do NOT pause KatherineSaved outright — cap its share instead <span class="tag revised">revised from data</span></label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Add <b>KatherineSaved</b> as one ad inside the new set alongside the others (it drove 5 of Go's 7 purchases).</li>
+          <li class="warn">Meta has no per-creative spend cap inside one ad set — you influence share only by how many alternatives you give it.</li>
+          <li>If after the learning window it still eats &gt;60–70% of delivery at &gt;$117 CPP, <b>then</b> duplicate Statics02 + HookVid3 into a separate small ad set to guarantee them spend. Don't kill Katherine — it's the volume driver.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c3_2"><div class="item-body">
+        <label for="c3_2">Force delivery onto Statics02 ($54–59 CPP, starved) and HookVid3</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Ensure both are active ads in the set.</li>
+          <li>If still starved (low impressions) after ~3–4 days, duplicate the ad set with <b>only those two</b> creatives on a small fixed budget so delivery is guaranteed.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c3_3"><div class="item-body">
+        <label for="c3_3">Wave 1 (2–3 new): SureRoute interface refresh · prospect-facing 20M static · 1 new hook</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>In the ad set → <b>+ Add ad</b> for each new creative.</li>
+          <li>Upload media from Dropbox → <b>Production Cycle 1</b> (see Resource links below).</li>
+          <li>Destination URL <span class="path">rvweather.com/go/</span> with UTM <span class="path">?utm_source=meta&utm_medium=paid_social&utm_campaign=go_scaling</span>.</li>
+          <li>Set primary text, headline, and CTA <b>Sign up</b> per ad.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c3_4"><div class="item-body">
+        <label for="c3_4">Run 4–6 ads total in the set</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Final mix: Statics02 + HookVid3 + KatherineSaved + 1–3 wave-1 ads = 4–6. More than that dilutes delivery on this volume.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c3_5"><div class="item-body">
+        <label for="c3_5">Hold the rest of Production Cycle 1 + the Jennifer testimonial for wave 2 (pending edits + permissions)</label>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c3_6"><div class="item-body">
+        <label for="c3_6">Brief 3 hook variants off HookVid3 now as fatigue insurance (freq ~1.9–2.5)</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Brief Kathy / editor for 3 new opening hooks (first 1–2 sec) on the HookVid3 body.</li>
+          <li>Stage them <b>paused</b> in the set; switch on as fatigue appears.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c3_7"><div class="item-body">
+        <label for="c3_7">Rotate every 3–4 days; refresh the slate ~every 2 weeks (page + offer stay fixed)</label>
+      </div></li>
+    </ul>
+  </div>
+
+  <!-- PHASE 4 -->
+  <div class="phase">
+    <div class="phase-head"><div class="phase-num">4</div><h3 class="phase-title">Optimization event — throttle fix</h3></div>
+    <p class="phase-note">Move off Purchase to the denser trial-start event so the set can exit learning and spend.</p>
+    <ul class="items">
+
+      <li class="item"><input type="checkbox" class="chk" id="c4_1"><div class="item-body">
+        <label for="c4_1">Verify the trial-start event in Test Events; map every funnel step <span class="tag gate">prerequisite</span></label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Open <span class="path">business.facebook.com/events_manager</span> → <b>Data sources</b> → pixel <b>803435358316400</b>.</li>
+          <li>Tab <b>Test events</b> → "Test browser events" → paste the trial thank-you URL <span class="path">rvweather.com/thank-you-for-starting-your-7-day-sureroute-trial/</span> (confirm exact slug) → Open website.</li>
+          <li>Complete a test trial signup; watch which event fires (expect <b>Lead</b>) and that it fires <b>only</b> on that page.</li>
+          <li>Repeat on the annual thank-you page <span class="path">/thank-you-annual-sureroute-subscription-purchase/</span> and confirm <b>Purchase $350</b> fires there, not the trial event.</li>
+          <li class="warn">Never point optimization at an unverified event. Map every step before Phase 4.2.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c4_2"><div class="item-body">
+        <label for="c4_2">Switch the consolidated set to optimize on the $0.99 trial-start event</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>If trial-start isn't a selectable conversion: Events Manager → <b>Custom conversions</b> → <b>Create custom conversion</b> → rule = URL contains the trial thank-you slug (or Event = Lead) → name <b>"Trial Start"</b> → assign category → Create.</li>
+          <li>In the new ad set → <b>Conversion event</b> dropdown → select <b>Trial Start</b>.</li>
+          <li>Trial volume is multiples of annual purchases, so the set can reach the ~50/week needed to leave learning.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c4_3"><div class="item-body">
+        <label for="c4_3">Make the change once, at consolidation, to eat a single learning reset</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Set the Trial Start event when you first build the set in Phase 2 — not later. Switching events after launch triggers a second reset.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c4_4"><div class="item-body">
+        <label for="c4_4">Keep $350 value on the annual Purchase event for reporting</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Events Manager → the <b>SureRoute Annual (Purchase)</b> event → confirm value = <b>$350</b> (Dave set it 5 Jun).</li>
+          <li>Optimization runs on Trial Start; the reporting value stays on Purchase. Both coexist.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c4_5"><div class="item-body">
+        <label for="c4_5">Watch trial-start→annual weekly; if &lt;60–70%, the optimizer is finding low-intent starts — revisit</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Each week compare trial-starts (Meta) vs subsequent annual conversions (MemberPress back-end).</li>
+          <li>If the ratio drops below 60–70%, tighten audience or revert to Purchase optimization.</li>
+        </ol></div></details>
+      </div></li>
+    </ul>
+  </div>
+
+  <!-- PHASE 5 -->
+  <div class="phase">
+    <div class="phase-head"><div class="phase-num">5</div><h3 class="phase-title">Warm retargeting</h3></div>
+    <p class="phase-note">Separate campaign, never mixed with prospecting. Rides the 5d–3wk decision window.</p>
+    <ul class="items">
+
+      <li class="item"><input type="checkbox" class="chk" id="c5_1"><div class="item-body">
+        <label for="c5_1">Stand up a separate retargeting campaign (own budget)</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>+ Create → Auction → <b>Sales</b> → name <span class="path">RVWX_Retargeting_2026-07</span>. Keep its budget separate from prospecting.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c5_2"><div class="item-body">
+        <label for="c5_2">Build audiences (all excluding annual converters)</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Ads Manager → All tools (≡) → <b>Audiences</b> → <b>Create audience</b>.</li>
+          <li><b>Custom audience → Website</b>: (a) LP visitors /go/ + legacy, 14–30d; (b) Trial Start event, no annual; (c) forecast-page visitors, 30d.</li>
+          <li><b>Custom audience → Customer list</b>: upload the 1,600-name email CSV (Dropbox → Spreadsheets &amp; Documents).</li>
+          <li><b>Lookalike</b>: Create → source = the email list → US 1%.</li>
+          <li>On each retargeting ad set, set the audience and <b>Exclude</b> annual converters.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c5_3"><div class="item-body">
+        <label for="c5_3">Offer $0.99 or 20% off; route all CTAs to the Pricing Page; time to the 5d–3wk window</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Retargeting ad destination = <b>Pricing Page</b> (where the warm pool already converts), with UTM.</li>
+          <li>Offer $0.99 trial or 20% off. Pace frequency for the 5-day-to-3-week return window.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c5_4"><div class="item-body">
+        <label for="c5_4">Small budget; switch on once pools reach usable size (~2 weeks)</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>In Audiences, check each audience size is &gt; ~1,000 / shows <b>Ready</b> before activating.</li>
+          <li>Start small (≈$20–30/day total). Pools need ~2 weeks to fill.</li>
+        </ol></div></details>
+      </div></li>
+    </ul>
+  </div>
+
+  <!-- PHASE 6 -->
+  <div class="phase">
+    <div class="phase-head"><div class="phase-num">6</div><h3 class="phase-title">Measurement guardrails</h3></div>
+    <p class="phase-note">Keep the read honest before quoting Dave anything.</p>
+    <ul class="items">
+
+      <li class="item"><input type="checkbox" class="chk" id="c6_1"><div class="item-body">
+        <label for="c6_1">Recompute from raw CSVs each cycle; cross-check granularities; flag MATCH/MISMATCH</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Repeat the Phase 0.1 export each reporting cycle; never quote a dashboard column without summing ad-level back to campaign first.</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c6_2"><div class="item-body">
+        <label for="c6_2">Treat Experiments panel and CSV as separate time snapshots — never reconcile as one source</label>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c6_3"><div class="item-body">
+        <label for="c6_3">Reconcile Meta vs MemberPress weekly; back out rally booth signups before quoting blended CPP</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Each Monday, line up Meta purchases vs MemberPress back-end subs by source.</li>
+          <li>When Dave reports a strong blended week, subtract in-person booth signups before drawing any conclusion (they distort Meta-attributed CPP).</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c6_4"><div class="item-body">
+        <label for="c6_4">Track KPIs in order: LPV→purchase (~1%→2%+) · trial-start volume + learning status · CPP (sub-$100 then sub-$75) · frequency · annual rate</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>Ads Manager → <b>Columns → Customise columns</b> to surface Landing page views, Cost per purchase, Frequency.</li>
+          <li>Learning status shows in the ad set <b>Delivery</b> column ("Learning" / "Active").</li>
+        </ol></div></details>
+      </div></li>
+
+      <li class="item"><input type="checkbox" class="chk" id="c6_5"><div class="item-body">
+        <label for="c6_5">Use StatCounter heatmaps + session replay on <span class="mono">/go/</span> if LPV→purchase doesn't lift</label>
+        <details class="how"><summary>Steps</summary><div class="steps"><ol>
+          <li>StatCounter → <b>Recent Activity → Visitor Activity</b> to replay sessions; <b>Heatmaps</b> for scroll/click on the /go/ URL.</li>
+        </ol></div></details>
+      </div></li>
+    </ul>
+  </div>
+
+  <!-- PHASE 7 -->
+  <div class="phase">
+    <div class="phase-head"><div class="phase-num">7</div><h3 class="phase-title">Sequencing</h3></div>
+    <p class="phase-note">Order of execution once Phase 0 clears.</p>
+    <ul class="items">
+      <li class="item"><input type="checkbox" class="chk" id="c7_1"><div class="item-body"><label for="c7_1">Day 0 — Phase 0 checks, end experiment, build consolidated set (trial-start opt, /go/, proven creative + wave 1), $140/day, pause experiment cells</label></div></li>
+      <li class="item"><input type="checkbox" class="chk" id="c7_2"><div class="item-body"><label for="c7_2">Day 0–2 — verify delivery + event firing; confirm spend pulls toward the cap (throttle clearing)</label></div></li>
+      <li class="item"><input type="checkbox" class="chk" id="c7_3"><div class="item-body"><label for="c7_3">Day 3–4 — first rotation; brief HookVid3 variants</label></div></li>
+      <li class="item"><input type="checkbox" class="chk" id="c7_4"><div class="item-body"><label for="c7_4">Week 1–2 — retargeting pools build and switch on; inject wave 2</label></div></li>
+      <li class="item"><input type="checkbox" class="chk" id="c7_5"><div class="item-body"><label for="c7_5">Clean read 7–10 days after the consolidated set stabilizes (learning reset)</label></div></li>
+    </ul>
+  </div>
+
+  <!-- RESOURCE LINKS -->
+  <section class="resources">
+    <h2>Resource links — where to get the content</h2>
+    <p class="lead">Asset sources for the creative + funnel steps above. Dropbox is the live source of truth; the Google Drive folders are Alice-era and may be view-locked.</p>
+
+    <div class="res-group">
+      <h4>Primary creative repository (Dropbox)</h4>
+      <ul>
+        <li><span class="what"><b>Heath Media Access</b> (all assets)</span><span class="res-note">Top-level shared folder: creatives, statics, video, B-roll, testimonials. Invite on charles@heathmedia.co.uk with manage-members rights.</span></li>
+        <li><span class="what">→ Production Cycle 1</span><span class="res-note">Drop zone for new statics (interface refresh, 20M static). Inside Artwork Adobe › Adobe Advertising.</span></li>
+        <li><span class="what">→ BZs folder</span><span class="res-note">Testimonials + positive feedback bank (Jennifer Schillaci, Nancy, Robbie, MJ Wylie, Patti Moore).</span></li>
+        <li><span class="what">→ Founder Pics</span><a href="https://www.dropbox.com/scl/fo/ew6ztlv2cdawyievvjnng/ANldNUrDe2FA4I2bTNyeQ5w?rlkey=ngq83lo1hauirvyyyma6zxuxp&dl=0" target="_blank" rel="noopener">dropbox.com/…/Founder-Pics</a><span class="res-note">Navy photos for founder-story creative (no DoD endorsement).</span></li>
+        <li><span class="what">→ Spreadsheets &amp; Documents</span><span class="res-note">Funnels/offers/email-sequences doc + the three subscriber/forecast CSV lists.</span></li>
+      </ul>
+    </div>
+
+    <div class="res-group">
+      <h4>Logo &amp; brand</h4>
+      <ul>
+        <li><span class="what">Official RVWX logo folder</span><a href="https://www.dropbox.com/scl/fo/v7lwj4d9ydpl8722wcbe3/AKO9daY-m4V1yg_tNwLTkm4?rlkey=jctoleymuzsi8gv9qbteb8d0y&dl=0" target="_blank" rel="noopener">dropbox.com/…/RV-WX-logo</a><span class="res-note">Vector + PNG marks, hex codes, Veteran Owned PNGs (stacked + horizontal, white + transparent).</span></li>
+      </ul>
+    </div>
+
+    <div class="res-group">
+      <h4>Source video for hooks &amp; B-roll</h4>
+      <ul>
+        <li><span class="what">SureRoute demo MP4</span><a href="https://www.dropbox.com/scl/fi/e6z1nr63wxs0x4e879iur/251003-RV-Weather-SureRoute-Overview.mp4?rlkey=uaztssetdpqsrnourfit65w1n&dl=0" target="_blank" rel="noopener">dropbox.com/…/SureRoute-Overview.mp4</a><span class="res-note">Homepage demo — route + reroute cuts for the interface refresh and video hooks.</span></li>
+        <li><span class="what">Jennifer Eggers testimonial</span><a href="https://www.dropbox.com/scl/fo/b4g3rmgy2w69l8d70mgl2/AEwgUGlYDMcGZg2MbQKQIaw?rlkey=mwdydak74u41wstswef2z9gsz&dl=0" target="_blank" rel="noopener">dropbox.com/…/Jennifer-Eggers</a><span class="res-note">~30 min testimonial + Airstream b-roll. Different person to Jennifer Schillaci (the FB commenter).</span></li>
+        <li><span class="what">Rally B-roll (Georgia)</span><a href="https://www.dropbox.com/scl/fo/k6ujxqk9fxm5chpbnan7y/ANLU25l0T-lCHsLdhqFGOUo?rlkey=4qr4kmliivsrk80t608ayr4ky&dl=0" target="_blank" rel="noopener">dropbox.com/…/rally-clips</a></li>
+        <li><span class="what">Product screen captures</span><a href="https://www.dropbox.com/scl/fo/6qor43k6v1bzx5j38lp17/AHlNrZvZwCxAkACPF1debRo?rlkey=yk9pelhjn36s0dnea737pbj9w&dl=0" target="_blank" rel="noopener">dropbox.com/…/product-screen-captures</a><span class="res-note">Radar-vs-RVWeather + SureRoute wind examples (some with route lines).</span></li>
+        <li><span class="what">"Learn to RV" podcast</span><a href="https://youtu.be/3T-brfsG6d8?si=v-ykC7wkssJaAPWr" target="_blank" rel="noopener">youtu.be/3T-brfsG6d8</a><span class="res-note">Raw mp3/mp4 also in Heath Media Access › Video &amp; Audio - Other.</span></li>
+      </ul>
+    </div>
+
+    <div class="res-group">
+      <h4>Google Drive (Alice-era — may be view-locked)</h4>
+      <ul>
+        <li><span class="what">Creative batch under review</span><a href="https://drive.google.com/drive/folders/12-kR-Nq5JMyzRUGa4NFN9RxbFsAarp7Y" target="_blank" rel="noopener">drive.google.com/…/12-kR-Nq5J…</a></li>
+        <li><span class="what">Kathy static remakes</span><a href="https://drive.google.com/drive/folders/1B7Z13bd8B5AzpEdDlxN1yqUHk7DVOPZf" target="_blank" rel="noopener">drive.google.com/…/1B7Z13bd…</a><span class="res-note">Wind-ad variations + US-vs-Them statics.</span></li>
+        <li><span class="what">Video batch v1 (hooks)</span><a href="https://drive.google.com/drive/folders/1NqeCTf_SsIhIuPuM9YBk8A-MqKY987JK" target="_blank" rel="noopener">drive.google.com/…/1NqeCTf…</a></li>
+        <li><span class="what">Creative Cadence sheet</span><a href="https://docs.google.com/spreadsheets/d/1qKMwyuUYEPJTeJL09-iCTWZBvWNo9C0vBnOF_fl5lJ4/edit" target="_blank" rel="noopener">docs.google.com/…/creative-cadence</a></li>
+      </ul>
+    </div>
+
+    <div class="res-group">
+      <h4>Tracking &amp; diagnostics</h4>
+      <ul>
+        <li><span class="what">New Go landing page</span><a href="https://rvweather.com/go/" target="_blank" rel="noopener">rvweather.com/go/</a><span class="res-note">Pixel 803435358316400 hardcoded in head. Deployed via GitHub → WordPress.com (/go folder only).</span></li>
+        <li><span class="what">GitHub repo (/go page)</span><span class="path">charliepiper14/rvweather-lp</span></li>
+        <li><span class="what">StatCounter</span><a href="https://statcounter.com" target="_blank" rel="noopener">statcounter.com</a><span class="res-note">Heatmaps + visitor replay for /go/ (web-designer access granted).</span></li>
+        <li><span class="what">Microsoft Clarity (optional)</span><a href="https://clarity.microsoft.com/" target="_blank" rel="noopener">clarity.microsoft.com</a><span class="res-note">Free heatmaps/session recording if added later.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>RVWX · internal runbook · check state stored locally in this browser</footer>
+</div>
+
+<script>
+(function(){
+  var KEY='rvwx_meta_runbook_v2';
+  var boxes=Array.prototype.slice.call(document.querySelectorAll('.item input.chk'));
+  var fill=document.getElementById('fill'),done=document.getElementById('done'),
+      total=document.getElementById('total'),pct=document.getElementById('pct');
+  total.textContent=boxes.length;
+
+  function load(){
+    var saved={};
+    try{saved=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){saved={}}
+    boxes.forEach(function(b){ if(saved[b.id]){b.checked=true;} });
+  }
+  function save(){
+    var state={};
+    boxes.forEach(function(b){ if(b.checked) state[b.id]=1; });
+    try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
+  }
+  function render(){
+    var n=0;
+    boxes.forEach(function(b){
+      var li=b.closest('.item');
+      if(b.checked){n++;li.classList.add('done');}else{li.classList.remove('done');}
+    });
+    var p=boxes.length?Math.round(n/boxes.length*100):0;
+    done.textContent=n;pct.textContent=p+'%';fill.style.width=p+'%';
+  }
+  boxes.forEach(function(b){ b.addEventListener('change',function(){save();render();}); });
+
+  document.getElementById('resetBtn').addEventListener('click',function(){
+    if(!confirm('Clear all checks?'))return;
+    boxes.forEach(function(b){b.checked=false;});
+    save();render();
+  });
+  document.getElementById('printBtn').addEventListener('click',function(){window.print();});
+
+  var allOpen=false;
+  document.getElementById('expandBtn').addEventListener('click',function(){
+    allOpen=!allOpen;
+    document.querySelectorAll('details.how').forEach(function(d){d.open=allOpen;});
+    this.textContent=allOpen?'Collapse all':'Expand all';
+  });
+
+  load();render();
+})();
+</script>
+</body>
+</html>
